@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Page Not Found — AfriBConnect</title>
+  <meta name="robots" content="noindex"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--gold:#D4AF37;--bg:#0a0612;--bg2:#13091f;--white:#f5f0e8}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--white);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;overflow:hidden}
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+    .orb-1{width:400px;height:400px;background:rgba(212,175,55,.12);top:-100px;right:-100px;animation:float 8s ease-in-out infinite}
+    .orb-2{width:300px;height:300px;background:rgba(139,92,246,.08);bottom:-60px;left:-60px;animation:float 10s ease-in-out infinite reverse}
+    @keyframes float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.05)}}
+    .card{position:relative;z-index:1;max-width:480px;width:100%}
+    .icon{font-size:80px;margin-bottom:20px;display:block;animation:bounce .6s ease infinite alternate}
+    @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+    h1{font-size:80px;font-weight:900;background:linear-gradient(135deg,var(--gold),#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:8px}
+    h2{font-size:22px;font-weight:700;margin-bottom:12px;color:var(--white)}
+    p{font-size:15px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:32px}
+    .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn{padding:12px 28px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+    .btn-gold{background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;border:none}
+    .btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(212,175,55,.3)}
+    .btn-ghost{background:rgba(255,255,255,.06);color:var(--white);border:1px solid rgba(255,255,255,.12)}
+    .btn-ghost:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+    .divider{width:48px;height:2px;background:linear-gradient(90deg,var(--gold),#b8860b);margin:32px auto}
+    .quick-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px}
+    .ql{font-size:12px;padding:6px 14px;border-radius:20px;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.2);color:var(--gold);cursor:pointer;text-decoration:none;transition:all .2s}
+    .ql:hover{background:rgba(212,175,55,.2)}
+    .brand{font-size:13px;color:rgba(255,255,255,.25);margin-top:40px;letter-spacing:.5px}
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="card">
+    <span class="icon">🌍</span>
+    <h1>404</h1>
+    <h2>Page Not Found</h2>
+    <p>The page you're looking for doesn't exist or has moved.<br/>Let's get you back to AfriBConnect.</p>
+    <div class="btns">
+      <a href="./" class="btn btn-gold">🏠 Go Home</a>
+      <a href="javascript:history.back()" class="btn btn-ghost">← Go Back</a>
+    </div>
+    <div class="divider"></div>
+    <div class="quick-links">
+      <a href="./#connect" class="ql">🌍 Connect</a>
+      <a href="./#market"  class="ql">🛒 Market</a>
+      <a href="./#wallet"  class="ql">💰 Wallet</a>
+      <a href="./#games"   class="ql">🕹️ Games</a>
+      <a href="./#messages" class="ql">💬 Messages</a>
+    </div>
+    <p class="brand">AFRIB<strong style="color:var(--gold)">CONNECT</strong> · Africa's Super App</p>
+  </div>
+</body>
+</html>

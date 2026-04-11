@@ -1,0 +1,542 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AfribConnect v69 — Quartz Gifter Badges Upgrade
+   afrib_v69_gifter_badges.js
+   ─────────────────────────────────────────────────────────────────────────
+   Replaces the existing SVG badge renderer in afrib_gifter_levels.js
+   with the exact visual style from the provided reference HTML:
+
+   DESIGN SYSTEM (matching the reference exactly):
+   • Deep cosmic background: --bg1:#0b0404 → --bg3:#26110a
+   • Star-drift particle effect on badge backgrounds
+   • Gold palette: --gold:#f5c35b / --gold2:#ffdf8a / --orange:#ff9b2f
+   • Pink palette: --pink:#ff4fc3 / --pink2:#ff9ce8 (Active tier)
+   • Blue palette: --blue:#4aa8ff / --blue2:#b8e2ff (Power tier)
+   • Tier pills: Basic=brown gradient, Active=deep pink, Power=blue, Elite/Legend=dark gold
+   • Badge cards: glow halo per tier, CURRENT label, legendary pulse animation
+   • Quartz God pill: dark warm background, full icon set 👑⚡◊🔥
+   • Tier sections: tier-header with pill + glowing line, 5-column grid
+
+   THRESHOLDS updated to match the reference JS exactly:
+   1,10,25,50,100,180,300,500,800,1200, 2000,3200,5000,7500,11000,16000,
+   23000,32000,45000,60000, 80000,105000,140000,180000,230000,300000,400000,
+   550000,750000,1000000, 1400000,1900000,2500000,3200000,4000000,5200000,
+   6800000,8500000,10500000,13000000, 16000000,20000000,25000000,31000000,
+   38000000,46000000,55000000,65000000,80000000,100000000
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+(function AfribGifterBadgesUpgrade() {
+  'use strict';
+
+  /* ─────────────────────────────────────────────────────────────────
+     TIER COLOUR SYSTEM — matches reference CSS variables
+  ───────────────────────────────────────────────────────────────────── */
+  const TIER_CFG = {
+    basic: {
+      name:       'Basic Gifter',
+      pill:       'linear-gradient(180deg,#c9872c,#8a4f12)',
+      lineGlow:   'linear-gradient(90deg,#f0b03f,rgba(240,176,63,.1))',
+      shadow:     '0 0 12px rgba(255,195,91,.55),0 0 28px rgba(255,155,47,.3)',
+      haloglow:   'radial-gradient(circle,rgba(255,230,170,.5),transparent 65%)',
+      color:      '#f5c35b',
+      dark:       '#5b2506',
+    },
+    active: {
+      name:       'Active Gifter',
+      pill:       'linear-gradient(180deg,#c32f95,#7e135d)',
+      lineGlow:   'linear-gradient(90deg,#ff5dc7,rgba(255,93,199,.1))',
+      shadow:     '0 0 12px rgba(255,79,195,.55),0 0 28px rgba(255,156,232,.28)',
+      haloglow:   'radial-gradient(circle,rgba(255,100,210,.55),transparent 65%)',
+      color:      '#ff4fc3',
+      dark:       '#3d0129',
+    },
+    power: {
+      name:       'Power Gifter',
+      pill:       'linear-gradient(180deg,#2a6cd9,#0f347e)',
+      lineGlow:   'linear-gradient(90deg,#62b5ff,rgba(98,181,255,.1))',
+      shadow:     '0 0 12px rgba(74,168,255,.55),0 0 28px rgba(184,226,255,.28)',
+      haloglow:   'radial-gradient(circle,rgba(110,185,255,.55),transparent 65%)',
+      color:      '#4aa8ff',
+      dark:       '#01214f',
+    },
+    elite: {
+      name:       'Elite Gifter',
+      pill:       'linear-gradient(180deg,#5c3b19,#19110e)',
+      lineGlow:   'linear-gradient(90deg,#f0b03f,rgba(240,176,63,.1))',
+      shadow:     '0 0 12px rgba(255,195,91,.55),0 0 28px rgba(255,155,47,.3)',
+      haloglow:   'radial-gradient(circle,rgba(255,180,60,.55),transparent 65%)',
+      color:      '#f5c35b',
+      dark:       '#1a0e06',
+    },
+    legendary: {
+      name:       'Legendary Gifter',
+      pill:       'linear-gradient(180deg,#5c3b19,#19110e)',
+      lineGlow:   'linear-gradient(90deg,#f0b03f,rgba(240,176,63,.1))',
+      shadow:     '0 0 12px rgba(255,195,91,.55),0 0 28px rgba(255,155,47,.3)',
+      haloglow:   'radial-gradient(circle,rgba(255,180,60,.55),transparent 65%)',
+      color:      '#ff9b2f',
+      dark:       '#0d0800',
+    },
+    god: {
+      name:       'Quartz God',
+      pill:       'linear-gradient(180deg,#3a1f0f,#120c08)',
+      lineGlow:   'linear-gradient(90deg,#f0b03f,rgba(240,176,63,.1))',
+      shadow:     '0 0 12px rgba(255,195,91,.55),0 0 28px rgba(255,155,47,.3)',
+      haloglow:   'radial-gradient(circle,rgba(255,220,120,.65),transparent 65%)',
+      color:      '#ffe39e',
+      dark:       '#060300',
+    },
+  };
+
+  /* ─────────────────────────────────────────────────────────────────
+     UPDATED THRESHOLDS — matching the reference HTML exactly
+  ───────────────────────────────────────────────────────────────────── */
+  const LEVEL_THRESHOLDS = [
+    1,10,25,50,100,180,300,500,800,1200,
+    2000,3200,5000,7500,11000,16000,23000,32000,45000,60000,
+    80000,105000,140000,180000,230000,300000,400000,550000,750000,1000000,
+    1400000,1900000,2500000,3200000,4000000,5200000,6800000,8500000,10500000,13000000,
+    16000000,20000000,25000000,31000000,38000000,46000000,55000000,65000000,80000000,100000000
+  ];
+
+  /* ─────────────────────────────────────────────────────────────────
+     CRYSTAL SVG — pixel-perfect match to the reference's onerror SVG
+     The reference uses a multi-polygon quartz cluster with ellipse base
+  ───────────────────────────────────────────────────────────────────── */
+  function buildCrystalSVG(tier, level, size) {
+    size = size || 80;
+    const cfg = TIER_CFG[tier] || TIER_CFG.basic;
+    const id  = 'qb_' + tier + '_' + level + '_' + Math.random().toString(36).slice(2,5);
+
+    // Crystal colours per tier
+    const crystalPalettes = {
+      basic:     { c0:'#fff4da', c1:'#ffe39b', c2:'#ffd06f', accent:'#fff2cf', base:'rgba(215,149,37,.85)' },
+      active:    { c0:'#ffe0f5', c1:'#ff9ce8', c2:'#ff4fc3', accent:'#ffb8ea', base:'rgba(200,60,140,.85)' },
+      power:     { c0:'#e0f4ff', c1:'#b8e2ff', c2:'#4aa8ff', accent:'#d8efff', base:'rgba(50,120,210,.85)' },
+      elite:     { c0:'#fff4da', c1:'#ffce58', c2:'#f5a51a', accent:'#ffe9a0', base:'rgba(180,130,20,.85)' },
+      legendary: { c0:'#fff0c0', c1:'#ffb53f', c2:'#ff7c00', accent:'#ffe09b', base:'rgba(200,100,10,.85)' },
+      god:       { c0:'#ffffff', c1:'#ffe39e', c2:'#f5c35b', accent:'#fff8dc', base:'rgba(220,175,55,.9)' },
+    };
+    const pal = crystalPalettes[tier] || crystalPalettes.basic;
+
+    // Crown for elite/legendary/god
+    const hasCrown = ['elite','legendary','god'].includes(tier);
+
+    // Fire accents for legendary/god
+    const hasFire  = ['legendary','god'].includes(tier);
+
+    // Sparkle count per tier
+    const sparkleCount = { basic:3, active:5, power:6, elite:4, legendary:8, god:12 }[tier] || 3;
+
+    // Build sparkles
+    let sparkles = '';
+    const sparkPos = [[8,14],[88,12],[6,52],[92,48],[50,6],[18,82],[82,80],[28,10],[72,10]];
+    for (let i = 0; i < Math.min(sparkleCount, sparkPos.length); i++) {
+      const [sx, sy] = sparkPos[i];
+      const sz = 1.5 + (i % 3);
+      const dur = 1.4 + i * 0.25;
+      sparkles += `<circle cx="${sx}" cy="${sy}" r="${sz}" fill="${cfg.color}" opacity="${0.3 + (i%3)*0.2}">
+        <animate attributeName="opacity" values="${0.1 + i*0.04};0.95;${0.1 + i*0.04}" dur="${dur}s" repeatCount="indefinite"/>
+        <animate attributeName="r" values="${sz};${sz*1.6};${sz}" dur="${dur}s" repeatCount="indefinite"/>
+      </circle>`;
+    }
+
+    // 4-point star for legendary/god
+    if (hasFire) {
+      sparkles += `
+        <path d="M12,10 L13.5,14 L18,15.5 L13.5,17 L12,21 L10.5,17 L6,15.5 L10.5,14 Z" fill="${cfg.color}" opacity=".85">
+          <animate attributeName="opacity" values=".3;1;.3" dur="1.8s" repeatCount="indefinite"/>
+        </path>
+        <path d="M88,82 L89,85 L92,86 L89,87 L88,90 L87,87 L84,86 L87,85 Z" fill="${cfg.color}" opacity=".7">
+          <animate attributeName="opacity" values=".2;.9;.2" dur="2.3s" repeatCount="indefinite"/>
+        </path>`;
+    }
+
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow_${id}" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${cfg.color}" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="${cfg.color}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bg_${id}" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="rgba(255,178,80,.1)"/>
+      <stop offset="100%" stop-color="rgba(11,4,4,.95)"/>
+    </radialGradient>
+    <linearGradient id="ring_${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffdf8a"/>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f5c35b"/>
+    </linearGradient>
+    <linearGradient id="c0_${id}" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="${pal.c0}"/>
+      <stop offset="60%" stop-color="${pal.c1}"/>
+      <stop offset="100%" stop-color="${pal.c2}"/>
+    </linearGradient>
+    <filter id="gf_${id}" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="halo_${id}" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="50" cy="50" r="49" fill="url(#bg_${id})"/>
+
+  <!-- Halo glow -->
+  <circle cx="50" cy="52" r="36" fill="url(#glow_${id})" filter="url(#halo_${id})" opacity=".55"/>
+
+  <!-- Gold ring base -->
+  <ellipse cx="50" cy="74" rx="32" ry="8" stroke="url(#ring_${id})" stroke-width="2.5" fill="none" opacity=".9"/>
+  ${hasFire ? `<ellipse cx="50" cy="74" rx="35" ry="10.5" stroke="#ff7c00" stroke-width="1.5" fill="none" opacity=".4"/>` : ''}
+
+  <!-- Crystal cluster — 5 polygons matching reference -->
+  <!-- Far left small -->
+  <polygon points="22,40 28,54 26,67 20,67 18,54" fill="${pal.c2}" opacity=".55" filter="url(#gf_${id})"/>
+  <!-- Left medium -->
+  <polygon points="33,26 40,44 37,68 30,68 27,44" fill="${pal.c1}" opacity=".82" filter="url(#gf_${id})"/>
+  <!-- Centre tall (dominant) -->
+  <polygon points="50,10 59,34 55,70 45,70 41,34" fill="url(#c0_${id})" opacity=".97" filter="url(#gf_${id})"/>
+  <!-- Right medium -->
+  <polygon points="67,26 73,44 70,68 63,68 60,44" fill="${pal.c1}" opacity=".82" filter="url(#gf_${id})"/>
+  <!-- Far right small -->
+  <polygon points="78,40 84,54 82,67 76,67 74,54" fill="${pal.c2}" opacity=".55" filter="url(#gf_${id})"/>
+
+  <!-- Crystal highlights (refraction) -->
+  <polygon points="47,14 50,28 43,24" fill="white" opacity=".62"/>
+  <polygon points="35,28 37,38 32,36" fill="white" opacity=".38"/>
+  <polygon points="65,28 67,38 70,36" fill="white" opacity=".28"/>
+
+  <!-- Ellipse base (ground shadow under crystals) -->
+  <ellipse cx="50" cy="72" rx="28" ry="6" fill="${pal.base}" opacity=".75"/>
+
+  ${hasCrown ? `<!-- Crown -->
+  <g transform="translate(27,2) scale(0.46)">
+    <rect x="0" y="38" width="100" height="20" rx="4" fill="#d4af37" stroke="#ffdf8a" stroke-width="2"/>
+    <polygon points="0,38 16,10 32,38" fill="#d4af37" stroke="#ffdf8a" stroke-width="1.5"/>
+    <polygon points="34,38 50,3 66,38" fill="#d4af37" stroke="#ffdf8a" stroke-width="1.5"/>
+    <polygon points="68,38 84,10 100,38" fill="#d4af37" stroke="#ffdf8a" stroke-width="1.5"/>
+    <circle cx="50" cy="7" r="6" fill="#ff1493" stroke="#ffdf8a" stroke-width="1.5"/>
+    <circle cx="16" cy="13" r="4" fill="#00bfff" stroke="#ffdf8a" stroke-width="1"/>
+    <circle cx="84" cy="13" r="4" fill="#00bfff" stroke="#ffdf8a" stroke-width="1"/>
+    <circle cx="50" cy="48" r="5" fill="#ff1493"/>
+    <polygon points="0,38 16,10 10,30" fill="#ffdf8a" opacity=".4"/>
+    <polygon points="34,38 50,3 44,22" fill="#ffdf8a" opacity=".4"/>
+  </g>` : ''}
+
+  ${hasFire ? `<!-- Lightning bolts for god tier -->
+  <text x="14" y="30" font-size="11" fill="#f5c35b" opacity=".9">⚡</text>
+  <text x="72" y="30" font-size="11" fill="#f5c35b" opacity=".9">⚡</text>` : ''}
+
+  <!-- Sparkles -->
+  ${sparkles}
+
+  <!-- Level badge -->
+  <circle cx="50" cy="91" r="10.5" fill="rgba(0,0,0,.75)"/>
+  <circle cx="50" cy="91" r="9.5" fill="none" stroke="${cfg.color}" stroke-width="1.5"/>
+  <text x="50" y="95.5" text-anchor="middle" font-size="${level > 9 ? '7' : '9'}" font-weight="900"
+    fill="${cfg.color}" font-family="Arial,sans-serif">${level}</text>
+</svg>`;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     FULL PANEL — matching the reference HTML's tier sections exactly
+  ───────────────────────────────────────────────────────────────────── */
+
+  // Tier showcase data — representative levels per tier
+  const TIER_SHOWCASES = [
+    { tier:'basic',     label:'BASIC GIFTER',     levels:[1,2,3,4,10]    },
+    { tier:'active',    label:'ACTIVE GIFTER',    levels:[11,13,15,17,20] },
+    { tier:'power',     label:'POWER GIFTER',     levels:[21,23,25,27,30] },
+    { tier:'elite',     label:'ELITE GIFTER',     levels:[31,33,35,37,40] },
+    { tier:'legendary', label:'LEGENDARY GIFTER', levels:[41,43,45,48,50] },
+  ];
+
+  function renderFullPanel(currentLevel) {
+    const sections = TIER_SHOWCASES.map(({ tier, label, levels }) => {
+      const cfg = TIER_CFG[tier];
+
+      const badges = levels.map(lvl => {
+        const isCurrent = lvl === currentLevel;
+        const isUnlocked = lvl <= currentLevel;
+        const isFinal    = tier === 'legendary' && lvl === 50;
+
+        return `<div class="qb-badge-card${isCurrent ? ' qb-active-now' : ''}${isFinal ? ' qb-final' : ''}"
+          data-badge-level="${lvl}"
+          style="text-align:center;position:relative;padding:10px 8px 6px;border-radius:20px;
+          transition:transform .18s ease,filter .18s ease;cursor:pointer;
+          ${isUnlocked ? '' : 'opacity:.45;'}
+          ${isCurrent ? `box-shadow:${cfg.shadow};background:${cfg.color}10;` : ''}"
+          onclick="window.openGifterProfile&&openGifterProfile(window.currentUser?.email||'')"
+          onmouseenter="this.style.transform='translateY(-3px)'"
+          onmouseleave="this.style.transform=''">
+          <div style="position:relative;width:100%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:8px;overflow:visible;">
+            <!-- Halo glow -->
+            <div style="position:absolute;inset:7%;border-radius:50%;background:${cfg.haloglow};filter:blur(14px);opacity:.7;z-index:0;pointer-events:none;
+              ${isFinal ? 'animation:qbLegPulse 1.5s infinite alternate;' : ''}"></div>
+            <!-- Badge SVG -->
+            <div style="position:relative;z-index:1;width:100%;height:100%">
+              ${buildCrystalSVG(tier, lvl, 90)}
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:clamp(15px,2vw,20px);font-weight:800;
+            color:${isCurrent ? '#fff' : '#fff4d1'};
+            ${isCurrent ? `text-shadow:0 0 16px ${cfg.color}66;` : 'text-shadow:0 0 10px rgba(255,195,91,.12);'}">
+            Level ${lvl}
+          </div>
+          ${isCurrent ? `<div style="position:absolute;top:4px;right:4px;background:linear-gradient(180deg,#fff5ca,#ffce58);color:#5d2900;font-size:9px;font-weight:800;padding:4px 7px;border-radius:999px;box-shadow:${cfg.shadow}">CURRENT</div>` : ''}
+        </div>`;
+      }).join('');
+
+      // Quartz God section at the bottom of legendary
+      const godSection = tier === 'legendary' ? `
+        <div style="margin-top:14px;display:flex;justify-content:center;">
+          <div style="display:inline-flex;align-items:center;gap:12px;padding:12px 22px;border-radius:999px;
+            background:linear-gradient(180deg,#3a1f0f,#120c08);border:1px solid rgba(255,220,160,.24);
+            box-shadow:${TIER_CFG.god.shadow},inset 0 1px 0 rgba(255,255,255,.08);
+            font-size:clamp(17px,2.2vw,30px);font-weight:900;color:#ffe39e;letter-spacing:.5px;">
+            QUARTZ GOD 👑⚡◊🔥
+          </div>
+        </div>
+        <div style="text-align:center;font-size:clamp(16px,2vw,26px);font-weight:800;color:#fff3d1;margin-top:8px;">Level 50</div>
+      ` : '';
+
+      return `<div class="qb-tier qb-tier-${tier}" style="
+        position:relative;border-radius:26px;padding:18px 16px 20px;
+        border:1px solid rgba(255,220,160,.18);
+        background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.025));
+        box-shadow:0 14px 32px rgba(0,0,0,.22);overflow:hidden;margin-bottom:18px;">
+        <!-- Tier header -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="padding:10px 16px;border-radius:999px;font-size:clamp(13px,1.8vw,17px);font-weight:800;letter-spacing:.5px;
+            color:#fff6db;border:1px solid rgba(255,255,255,.16);
+            background:${cfg.pill};box-shadow:${cfg.shadow};
+            box-shadow:${cfg.shadow},inset 0 1px 0 rgba(255,255,255,.1);">
+            ${label}
+          </div>
+          <div style="flex:1;min-width:100px;height:4px;border-radius:999px;opacity:.92;
+            background:${cfg.lineGlow};box-shadow:${cfg.shadow};">
+          </div>
+        </div>
+        <!-- Badge grid -->
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(80px,1fr));gap:14px;">
+          ${badges}
+        </div>
+        ${godSection}
+      </div>`;
+    }).join('');
+
+    return `<div class="qb-sections" style="margin-top:4px;">
+      <style>
+        @keyframes qbLegPulse { from{filter:brightness(1)} to{filter:brightness(1.2)} }
+        @media(max-width:760px){.qb-sections [style*="grid-template-columns:repeat(5"]{grid-template-columns:repeat(2,minmax(110px,1fr))!important}}
+        @media(max-width:460px){.qb-sections [style*="grid-template-columns:repeat(5"]{grid-template-columns:1fr 1fr!important;gap:10px!important}}
+      </style>
+      ${sections}
+    </div>`;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     OVERRIDE renderQuartzBadgeSVG — used everywhere in the app
+  ───────────────────────────────────────────────────────────────────── */
+  window.renderQuartzBadgeSVG = function(levelData, size) {
+    if (!levelData) return '';
+    const tierKey = typeof levelData === 'object' ? (levelData.tierKey || levelData.tier || 'basic') : 'basic';
+    const lvlNum  = typeof levelData === 'object' ? (levelData.level || 1) : (levelData || 1);
+    // normalise tierKey to our keys
+    const key = typeof tierKey === 'string'
+      ? (tierKey === 'god' ? 'god' : tierKey.replace('Gifter','').trim().toLowerCase() in TIER_CFG
+          ? tierKey.replace('Gifter','').trim().toLowerCase()
+          : tierKey)
+      : 'basic';
+    return buildCrystalSVG(key in TIER_CFG ? key : 'basic', lvlNum, size || 56);
+  };
+
+  /* ─────────────────────────────────────────────────────────────────
+     PATCH showQuartzLevelsPanel — render the full tier showcase
+  ───────────────────────────────────────────────────────────────────── */
+  window.showQuartzLevelsPanel = function() {
+    document.getElementById('qb-panel-overlay')?.remove();
+
+    const me        = window.currentUser;
+    const spent     = me ? (_socGet(`afrib_gift_stats_${me.email}`, { totalCoinsSpent:0 }).totalCoinsSpent || 0) : 0;
+    const lvlData   = window.getQuartzLevel ? window.getQuartzLevel(spent) : { level:1, tierKey:'basic' };
+    const curLevel  = lvlData.level || 1;
+    const cfg       = TIER_CFG[lvlData.tierKey] || TIER_CFG.basic;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'qb-panel-overlay';
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:
+        radial-gradient(circle at 50% 0%,rgba(255,178,80,.2),transparent 18%),
+        radial-gradient(circle at 20% 20%,rgba(255,60,160,.12),transparent 20%),
+        radial-gradient(circle at 80% 30%,rgba(84,140,255,.1),transparent 18%),
+        rgba(11,4,4,.96);
+      display:flex;align-items:flex-end;justify-content:center;
+      animation:qbPanelIn .28s cubic-bezier(.16,1,.3,1) both;
+    `;
+    overlay.innerHTML = `
+      <style>
+        @keyframes qbPanelIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes qbPanelOut{to{opacity:0;transform:translateY(40px)}}
+        @keyframes qbStarDrift{from{transform:translateY(0)}to{transform:translateY(40px)}}
+        #qb-panel-inner::-webkit-scrollbar{width:4px}
+        #qb-panel-inner::-webkit-scrollbar-track{background:transparent}
+        #qb-panel-inner::-webkit-scrollbar-thumb{background:rgba(245,195,91,.2);border-radius:2px}
+      </style>
+      <div id="qb-panel-inner" style="
+        width:min(620px,100vw);max-height:90vh;overflow-y:auto;
+        background:
+          radial-gradient(circle at 50% 0%,rgba(255,178,80,.15),transparent 18%),
+          linear-gradient(180deg,#26110a,#160707 30%,#0b0404 100%);
+        border-radius:28px 28px 0 0;padding:0;
+        box-shadow:0 -20px 60px rgba(0,0,0,.8);
+        border-top:1px solid rgba(255,215,140,.18);
+        scrollbar-width:thin;scrollbar-color:rgba(245,195,91,.2) transparent;
+      ">
+        <!-- Handle -->
+        <div style="width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:12px auto 0"></div>
+
+        <!-- Header — star crystal + title matching reference hero -->
+        <div style="text-align:center;padding:18px 16px 8px;">
+          <div style="font-size:clamp(28px,5vw,56px);line-height:.95;letter-spacing:1px;font-weight:900;
+            background:linear-gradient(180deg,#fff2c8,#ffd86c 45%,#ffb53f 70%,#fff0b6);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            QUARTZ GIFTER<br>LEVEL UP
+          </div>
+          <!-- Arc decoration -->
+          <div style="height:14px;width:min(92%,480px);margin:10px auto 0;border-top:2px solid rgba(255,240,210,.28);border-radius:999px;box-shadow:0 -8px 20px rgba(255,202,102,.15);"></div>
+        </div>
+
+        <!-- Your status strip -->
+        <div style="margin:8px 16px;padding:14px 16px;border-radius:18px;
+          background:rgba(0,0,0,.28);border:1px solid rgba(255,219,160,.18);">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div>${buildCrystalSVG(lvlData.tierKey || 'basic', curLevel, 72)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:22px;font-weight:800;color:#fff3d0;">Level ${curLevel}</div>
+              <div style="font-size:14px;color:#ffdcb0;margin-top:2px;">${cfg.name}</div>
+              <!-- Progress bar -->
+              <div style="margin-top:10px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#ffe0b1;margin-bottom:5px;">
+                  <span>${spent.toLocaleString()} 🪙 spent</span>
+                  <span>${lvlData.coinsToNext > 0 ? lvlData.coinsToNext.toLocaleString() + ' to next' : 'MAX LEVEL'}</span>
+                </div>
+                <div style="height:10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,215,140,.12);overflow:hidden;">
+                  <div style="height:100%;width:${lvlData.progress || 0}%;border-radius:inherit;
+                    background:linear-gradient(90deg,#ffbe3d,#ffd97d,#fff0b2);
+                    box-shadow:0 0 14px rgba(255,203,90,.38);transition:width .5s ease;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full tier showcase -->
+        <div style="padding:0 12px 24px;">
+          ${renderFullPanel(curLevel)}
+        </div>
+
+        <!-- CTA -->
+        <div style="padding:0 16px 32px;text-align:center;">
+          <button onclick="document.getElementById('qb-panel-overlay').remove();setTimeout(()=>window.v69LaunchGiftMe&&v69LaunchGiftMe('panel'),200)"
+            style="background:linear-gradient(180deg,#ffe6a6,#ffbf43 54%,#ff9c24);color:#230b00;border:none;border-radius:999px;
+            padding:14px 36px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.3px;
+            box-shadow:0 10px 24px rgba(255,178,50,.32),inset 0 1px 0 rgba(255,255,255,.45);">
+            🎁 Send a Gift &amp; Level Up
+          </button>
+        </div>
+      </div>`;
+
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.style.animation = 'qbPanelOut .2s ease forwards';
+        setTimeout(() => overlay.remove(), 200);
+      }
+    };
+    document.body.appendChild(overlay);
+  };
+
+  /* ─────────────────────────────────────────────────────────────────
+     MINI BADGE PILL — profile cards, messages, posts
+  ───────────────────────────────────────────────────────────────────── */
+  window.renderQuartzBadgePill = function(email, small) {
+    try {
+      const stats   = _socGet(`afrib_gift_stats_${email}`, { totalCoinsSpent:0 });
+      const lvlData = window.getQuartzLevel ? window.getQuartzLevel(stats.totalCoinsSpent || 0) : { level:1, tierKey:'basic' };
+      if (!lvlData || (stats.totalCoinsSpent || 0) < 1) return '';
+
+      const cfg  = TIER_CFG[lvlData.tierKey] || TIER_CFG.basic;
+      const sz   = small ? 22 : 30;
+
+      return `<span title="${cfg.name} — Level ${lvlData.level}"
+        style="display:inline-flex;align-items:center;gap:4px;
+          background:${cfg.color}14;border:1px solid ${cfg.color}40;border-radius:999px;
+          padding:${small?'2px 6px':'4px 9px'};vertical-align:middle;cursor:pointer;
+          box-shadow:${cfg.shadow};"
+        onclick="event.stopPropagation();window.openGifterProfile&&openGifterProfile('${email}')">
+        ${buildCrystalSVG(lvlData.tierKey, lvlData.level, sz)}
+        <span style="font-size:${small?'9px':'11px'};font-weight:800;color:${cfg.color};white-space:nowrap;">L${lvlData.level}</span>
+      </span>`;
+    } catch(e) { return ''; }
+  };
+
+  /* ─────────────────────────────────────────────────────────────────
+     UPDATE THRESHOLDS globally
+  ───────────────────────────────────────────────────────────────────── */
+  if (window.QUARTZ_LEVELS) {
+    window.QUARTZ_LEVELS.forEach((lvl, i) => {
+      if (LEVEL_THRESHOLDS[i] !== undefined) lvl.coins = LEVEL_THRESHOLDS[i];
+    });
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     CSS injection for the panel background star effect
+  ───────────────────────────────────────────────────────────────────── */
+  function injectCSS() {
+    if (document.getElementById('qb-upgrade-css')) return;
+    const s = document.createElement('style');
+    s.id = 'qb-upgrade-css';
+    s.textContent = `
+      /* Home quartz chip uses new renderer */
+      .v69-quartz-chip svg { overflow:visible; }
+
+      /* Badge pill hover */
+      .quartz-badge-pill:hover { filter:brightness(1.1); transform:scale(1.05); transition:.15s; }
+
+      /* Tier section responsive grid */
+      @media(max-width:480px) {
+        .qb-sections [style*="grid-template-columns:repeat(5"] {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 10px !important;
+        }
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  function _socGet(k, fb) {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }
+    catch(e) { return fb; }
+  }
+
+  function init() {
+    injectCSS();
+    log('Quartz Gifter Badges upgraded to reference design ✓');
+  }
+
+  function log(msg) { console.log('%c[AfribConnect] 💎 ' + msg, 'color:#f5c35b;font-weight:700'); }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(init, 300));
+  } else {
+    setTimeout(init, 300);
+  }
+
+  // Expose for other modules
+  window._buildCrystalSVG   = buildCrystalSVG;
+  window._qbTierCfg         = TIER_CFG;
+  window._qbLevelThresholds = LEVEL_THRESHOLDS;
+
+})();
